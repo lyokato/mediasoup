@@ -19,6 +19,7 @@
 #include "RTC/TcpServer.hpp"
 #include "RTC/TransportTuple.hpp"
 #include "RTC/UdpSocket.hpp"
+#include "handles/Timer.hpp"
 #include <json/json.h>
 #include <string>
 #include <vector>
@@ -30,7 +31,8 @@ namespace RTC
 	                  public RTC::TcpConnection::Listener,
 	                  public RTC::IceServer::Listener,
 	                  public RTC::DtlsTransport::Listener,
-	                  public RTC::RemoteBitrateEstimator::Listener
+	                  public RTC::RemoteBitrateEstimator::Listener,
+                    public Timer::Listener
 	{
 	public:
 		class Listener
@@ -80,6 +82,10 @@ namespace RTC
 		    const uint8_t* data,
 		    size_t len,
 		    const struct sockaddr* remoteAddr) override;
+
+		/* Pure virtual methods inherited from Timer::Listener. */
+	public:
+		void OnTimer(Timer* timer) override;
 
 		/* Pure virtual methods inherited from RTC::TcpServer::Listener. */
 	public:
@@ -153,6 +159,9 @@ namespace RTC
 		uint32_t maxBitrate{ 0 };
 		uint32_t effectiveMaxBitrate{ 0 };
 		uint64_t lastEffectiveMaxBitrateAt{ 0 };
+
+    bool receivedPacket{ false };
+    Timer* idleTimeoutTimer{ nullptr };
 	};
 
 	/* Inline instance methods. */

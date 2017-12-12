@@ -22,6 +22,9 @@ static constexpr uint16_t IceTypePreference{ 64 };
 // We do not support non rtcp-mux so `component` is always 1.
 static constexpr uint16_t IceComponent{ 1 };
 
+// TODO make this configurable dynamically
+static constexpr uint16_t IdleTimeoutMs{ 10000 };
+
 /* Static helpers. */
 
 static inline uint32_t generateIceCandidatePriority(uint16_t localPreference)
@@ -200,6 +203,9 @@ namespace RTC
 
 		// Hack to avoid that Destroy() above attempts to delete this.
 		this->allocated = true;
+
+    this->receivedPacket = false;
+    this->idleTimeoutTimer = new Timer(this);
 	}
 
 	Transport::~Transport()
@@ -707,11 +713,13 @@ namespace RTC
 		// Check if it's RTCP.
 		else if (RTCP::Packet::IsRtcp(data, len))
 		{
+      this->receivedPacket = true;
 			OnRtcpDataRecv(tuple, data, len);
 		}
 		// Check if it's RTP.
 		else if (RtpPacket::IsRtp(data, len))
 		{
+      this->receivedPacket = true;
 			OnRtpDataRecv(tuple, data, len);
 		}
 		// Check if it's DTLS.
@@ -1202,6 +1210,30 @@ namespace RTC
 
 		this->selectedTuple->Send(data, len);
 	}
+
+  void Transport::OnTimer(Timer *timer)
+  {
+		MS_TRACE();
+
+    if (timer == this->idleTimeoutTimer)
+    {
+
+      if (this->receivedPacket)
+      {
+        // OK, received some packet within last interval,
+        // clear flag and check again.
+        this->receivedPacket = false;
+        this->idleTimeoutTimer->Start(IdleTimeoutMs);
+      }
+      else
+      {
+        // idle timeout, should disconnect
+        this->idleTimeoutTimer->Stop();
+        Destroy();
+      }
+    }
+  }
+
 
 	void Transport::OnDtlsApplicationData(
 	    const RTC::DtlsTransport* /*dtlsTransport*/, const uint8_t* /*data*/, size_t len)
