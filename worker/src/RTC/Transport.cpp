@@ -1152,6 +1152,7 @@ namespace RTC
 		this->notifier->Emit(this->transportId, "dtlsstatechange", eventData);
 
 		this->listener->OnTransportConnected(this);
+    this->idleTimeoutTimer->Start(IdleTimeoutMs);
 	}
 
 	void Transport::OnDtlsFailed(const RTC::DtlsTransport* /*dtlsTransport*/)
