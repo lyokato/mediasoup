@@ -221,6 +221,10 @@ namespace RTC
 
 		Json::Value eventData(Json::objectValue);
 
+    if (this->idleTimeoutTimer != nullptr) {
+      this->idleTimeoutTimer->Destroy();
+    }
+
 		if (this->srtpRecvSession != nullptr)
 			this->srtpRecvSession->Destroy();
 
